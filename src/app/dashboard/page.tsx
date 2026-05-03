@@ -1,4 +1,5 @@
 import { LogOut, Radar } from "lucide-react";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Actions } from "@features/actions/actions";
 import { AgentPipeline } from "@features/agent-pipeline/agent-pipeline";
@@ -15,6 +16,15 @@ import { ensureUserSeed, getActions, getRadar, getRadarRuns, getSignals, getSour
 import { Button } from "@shared/components/button";
 
 export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const hdrs = await headers();
+  console.log("[v0] dashboard cookies", cookieStore.getAll().map((c) => c.name));
+  console.log("[v0] dashboard headers", {
+    host: hdrs.get("host"),
+    xForwardedHost: hdrs.get("x-forwarded-host"),
+    xForwardedProto: hdrs.get("x-forwarded-proto"),
+    referer: hdrs.get("referer")
+  });
   const session = isAuthConfigured() ? await auth() : null;
   console.log("[v0] dashboard render", { authConfigured: isAuthConfigured(), hasSession: Boolean(session), userEmail: session?.user?.email });
   if (isAuthConfigured() && !session?.user) {
