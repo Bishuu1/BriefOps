@@ -70,7 +70,6 @@ export default async function HomePage({
                       type="email"
                       required
                       autoComplete="email"
-                      defaultValue="demo@demo.com"
                       className="h-10 w-full rounded-md border border-line bg-white px-3 text-sm text-ink outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt/20"
                     />
                   </div>
