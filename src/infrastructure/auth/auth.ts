@@ -57,6 +57,17 @@ const providers = [
     : [])
 ];
 
+// SameSite=None + Secure + Partitioned lets the auth cookies survive when the app
+// runs inside a cross-origin iframe (v0 preview) and also works fine on direct
+// production traffic. Auth.js still validates CSRF via its own token, so loosening
+// SameSite here does not weaken auth.
+const crossSiteCookieOptions = {
+  sameSite: "none" as const,
+  path: "/",
+  secure: true,
+  partitioned: true
+};
+
 export const authConfig = {
   providers,
   pages: {
@@ -65,6 +76,21 @@ export const authConfig = {
   },
   session: {
     strategy: "jwt"
+  },
+  cookies: {
+    sessionToken: {
+      name: "__Secure-authjs.session-token",
+      options: { httpOnly: true, ...crossSiteCookieOptions }
+    },
+    callbackUrl: {
+      name: "__Secure-authjs.callback-url",
+      options: { ...crossSiteCookieOptions }
+    },
+    csrfToken: {
+      // __Host- prefix would block Partitioned in some browsers, drop the prefix
+      name: "__Secure-authjs.csrf-token",
+      options: { httpOnly: true, ...crossSiteCookieOptions }
+    }
   },
   callbacks: {
     async signIn({ user, profile }) {
