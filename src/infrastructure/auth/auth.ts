@@ -46,8 +46,10 @@ const providers = [
             const password = String(credentials?.password ?? "");
             const expectedEmail = (process.env.BRIEFOPS_DEMO_EMAIL ?? "").trim().toLowerCase();
             const expectedPassword = process.env.BRIEFOPS_DEMO_PASSWORD ?? "";
+            console.log("[v0] authorize attempt", { email, expectedEmail, emailMatch: email === expectedEmail, passwordLen: password.length, expectedPasswordLen: expectedPassword.length });
             if (!email || !password) return null;
             if (email !== expectedEmail || password !== expectedPassword) return null;
+            console.log("[v0] authorize success", { email });
             return { id: email, email, name: email.split("@")[0] };
           }
         })
@@ -67,18 +69,22 @@ export const authConfig = {
   callbacks: {
     async signIn({ user, profile }) {
       const email = user.email ?? profile?.email;
-      return (await isEmailAllowed(email)) ? true : "/blocked";
+      const allowed = await isEmailAllowed(email);
+      console.log("[v0] signIn callback", { email, allowed, allowlistEnv: process.env.BRIEFOPS_BETA_ALLOWLIST });
+      return allowed ? true : "/blocked";
     },
     jwt({ token, user, profile }) {
       if (user?.id) token.sub = String(user.id);
       else if (profile?.id) token.sub = String(profile.id);
       if (user?.email) token.email = user.email;
+      console.log("[v0] jwt callback", { sub: token.sub, email: token.email, hasUser: Boolean(user) });
       return token;
     },
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? session.user.email ?? "demo-user";
       }
+      console.log("[v0] session callback", { userId: session.user?.id, email: session.user?.email });
       return session;
     }
   }

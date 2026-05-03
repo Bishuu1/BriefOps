@@ -16,7 +16,11 @@ import { Button } from "@shared/components/button";
 
 export default async function DashboardPage() {
   const session = isAuthConfigured() ? await auth() : null;
-  if (isAuthConfigured() && !session?.user) redirect("/");
+  console.log("[v0] dashboard render", { authConfigured: isAuthConfigured(), hasSession: Boolean(session), userEmail: session?.user?.email });
+  if (isAuthConfigured() && !session?.user) {
+    console.log("[v0] dashboard redirecting to / because no session");
+    redirect("/");
+  }
 
   const userId = await getCurrentUserId();
   await ensureUserSeed(userId);
