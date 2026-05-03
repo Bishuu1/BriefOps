@@ -1,4 +1,4 @@
-import { sql } from "@vercel/postgres";
+import { sql } from "@infrastructure/db/sql";
 
 function normalizeEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() ?? "";
