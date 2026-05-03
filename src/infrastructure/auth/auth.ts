@@ -1,8 +1,7 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
-import PostgresAdapter from "@auth/pg-adapter";
-import { Pool } from "pg";
+import Credentials from "next-auth/providers/credentials";
 import { isEmailAllowed } from "./allowlist";
 
 export function isGitHubAuthConfigured() {
@@ -13,8 +12,8 @@ export function isGoogleAuthConfigured() {
   return Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 }
 
-function hasPostgres() {
-  return Boolean(process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
+export function isCredentialsAuthConfigured() {
+  return Boolean(process.env.BRIEFOPS_DEMO_EMAIL && process.env.BRIEFOPS_DEMO_PASSWORD);
 }
 
 const providers = [
@@ -33,37 +32,52 @@ const providers = [
           clientSecret: process.env.AUTH_GOOGLE_SECRET!
         })
       ]
+    : []),
+  ...(isCredentialsAuthConfigured()
+    ? [
+        Credentials({
+          name: "Email",
+          credentials: {
+            email: { label: "Email", type: "email" },
+            password: { label: "Password", type: "password" }
+          },
+          async authorize(credentials) {
+            const email = String(credentials?.email ?? "").trim().toLowerCase();
+            const password = String(credentials?.password ?? "");
+            const expectedEmail = (process.env.BRIEFOPS_DEMO_EMAIL ?? "").trim().toLowerCase();
+            const expectedPassword = process.env.BRIEFOPS_DEMO_PASSWORD ?? "";
+            if (!email || !password) return null;
+            if (email !== expectedEmail || password !== expectedPassword) return null;
+            return { id: email, email, name: email.split("@")[0] };
+          }
+        })
+      ]
     : [])
 ];
 
-const pool = hasPostgres()
-  ? new Pool({
-      connectionString: process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL
-    })
-  : undefined;
-
 export const authConfig = {
-  adapter: pool ? PostgresAdapter(pool) : undefined,
   providers,
   pages: {
     signIn: "/",
     error: "/blocked"
   },
   session: {
-    strategy: hasPostgres() ? "database" : "jwt"
+    strategy: "jwt"
   },
   callbacks: {
     async signIn({ user, profile }) {
       const email = user.email ?? profile?.email;
       return (await isEmailAllowed(email)) ? true : "/blocked";
     },
-    jwt({ token, profile }) {
-      if (profile?.id) token.sub = String(profile.id);
+    jwt({ token, user, profile }) {
+      if (user?.id) token.sub = String(user.id);
+      else if (profile?.id) token.sub = String(profile.id);
+      if (user?.email) token.email = user.email;
       return token;
     },
-    session({ session, token, user }) {
+    session({ session, token }) {
       if (session.user) {
-        session.user.id = user?.id ?? token.sub ?? session.user.email ?? "demo-user";
+        session.user.id = token.sub ?? session.user.email ?? "demo-user";
       }
       return session;
     }
