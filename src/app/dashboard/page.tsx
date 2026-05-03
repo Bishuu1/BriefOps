@@ -1,14 +1,17 @@
 import { LogOut, Radar } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Actions } from "@features/actions/actions";
 import { AgentPipeline } from "@features/agent-pipeline/agent-pipeline";
 import { DailyBrief } from "@features/daily-brief/daily-brief";
 import { RadarSetup } from "@features/radar-setup/radar-setup";
+import { Runs } from "@features/runs/runs";
+import { Settings } from "@features/settings/settings";
 import { Signals } from "@features/signals/signals";
 import { Sources } from "@features/sources/sources";
 import { auth, isAuthConfigured } from "@infrastructure/auth/auth";
 import { signOutUser } from "@infrastructure/auth/actions";
 import { getCurrentUserId } from "@infrastructure/auth/session";
-import { ensureUserSeed, getRadar, getSignals, getSources } from "@infrastructure/db/store";
+import { ensureUserSeed, getActions, getRadar, getRadarRuns, getSignals, getSources } from "@infrastructure/db/store";
 import { Button } from "@shared/components/button";
 
 export default async function DashboardPage() {
@@ -17,7 +20,15 @@ export default async function DashboardPage() {
 
   const userId = await getCurrentUserId();
   await ensureUserSeed(userId);
-  const [radar, sources, signals] = await Promise.all([getRadar(userId), getSources(userId), getSignals(userId)]);
+  const [radar, sources, signals, actions, runs] = await Promise.all([
+    getRadar(userId),
+    getSources(userId),
+    getSignals(userId),
+    getActions(userId),
+    getRadarRuns(userId)
+  ]);
+
+  if (!radar.onboardingCompleted) redirect("/onboarding");
 
   return (
     <main className="min-h-screen bg-paper">
@@ -27,9 +38,9 @@ export default async function DashboardPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-ink text-white">
               <Radar size={18} />
             </div>
-            <div>
+          <div>
               <p className="text-sm font-semibold text-ink">BriefOps</p>
-              <p className="text-xs text-slate-500">{session?.user?.email ?? "Demo mode"}</p>
+              <p className="text-xs text-slate-500">{session?.user?.email ?? "Explicit demo mode"}</p>
             </div>
           </div>
           {isAuthConfigured() ? (
@@ -43,12 +54,29 @@ export default async function DashboardPage() {
       </header>
 
       <div className="mx-auto max-w-7xl space-y-6 px-5 py-6">
-        <DailyBrief radar={radar} signals={signals} />
+        <nav className="flex flex-wrap gap-2 text-sm">
+          {["Daily Brief", "Radar", "Sources", "Runs", "Actions", "Settings"].map((item) => (
+            <a key={item} href={`#${item.toLowerCase().replaceAll(" ", "-")}`} className="rounded-md border border-line bg-white px-3 py-2 font-medium text-slate-700 hover:text-ink">
+              {item}
+            </a>
+          ))}
+        </nav>
+        <section id="daily-brief">
+          <DailyBrief radar={radar} signals={signals} sources={sources} actions={actions} runs={runs} />
+        </section>
         <AgentPipeline />
-        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div id="radar" className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <RadarSetup radar={radar} />
-          <Sources sources={sources} />
+          <div id="sources">
+            <Sources sources={sources} />
+          </div>
         </div>
+        <section id="runs">
+          <Runs runs={runs} />
+        </section>
+        <section id="actions">
+          <Actions actions={actions} />
+        </section>
         <section>
           <div className="mb-3">
             <h2 className="text-xl font-semibold text-ink">Signal Cards</h2>
@@ -57,6 +85,9 @@ export default async function DashboardPage() {
             </p>
           </div>
           <Signals signals={signals} />
+        </section>
+        <section id="settings">
+          <Settings email={session?.user?.email} />
         </section>
       </div>
     </main>

@@ -1,15 +1,26 @@
 import { ArrowRight, Clock, ShieldAlert, Sparkles } from "lucide-react";
-import type { Radar, Signal } from "@shared/models/domain";
+import type { GeneratedAction, Radar, RadarRun, Signal, Source } from "@shared/models/domain";
 import { Badge } from "@shared/components/badge";
 import { Card } from "@shared/components/card";
 import { ScorePill } from "@shared/components/score-pill";
 import { Actions } from "@features/actions/actions";
 import { BriefSection } from "./components/brief-section";
 
-export function DailyBrief({ radar, signals }: { radar: Radar; signals: Signal[] }) {
+export function DailyBrief({
+  radar,
+  signals,
+  sources = [],
+  actions = [],
+  runs = []
+}: {
+  radar: Radar;
+  signals: Signal[];
+  sources?: Source[];
+  actions?: GeneratedAction[];
+  runs?: RadarRun[];
+}) {
   const topSignals = signals.slice(0, 3);
   const waitSignals = signals.filter((signal) => signal.signalScore < 75).slice(0, 3);
-  const opportunity = signals.find((signal) => signal.type === "Business opportunity") ?? topSignals[0];
   const risk =
     signals.find((signal) => signal.type === "Breaking change" || signal.type === "Security issue") ??
     topSignals[1] ??
@@ -30,8 +41,10 @@ export function DailyBrief({ radar, signals }: { radar: Radar; signals: Signal[]
           </p>
         </div>
         <div className="rounded-lg border border-line bg-white px-4 py-3 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Radar goal</p>
-          <p className="mt-1 text-sm font-semibold text-ink">{radar.goal}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Last run</p>
+          <p className="mt-1 text-sm font-semibold text-ink">
+            {runs[0]?.finishedAt ? new Date(runs[0].finishedAt).toLocaleString() : "No run yet"}
+          </p>
         </div>
       </div>
 
@@ -41,27 +54,35 @@ export function DailyBrief({ radar, signals }: { radar: Radar; signals: Signal[]
             <Sparkles size={18} className="text-mint" />
             <h2 className="text-lg font-semibold text-ink">What changed?</h2>
           </div>
-          <div className="grid gap-3">
-            {topSignals.map((signal) => (
-              <div key={signal.id} className="rounded-md border border-line p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-medium text-ink">{signal.title}</h3>
-                  <ScorePill value={signal.signalScore} label="Score" />
+          {topSignals.length === 0 ? (
+            <div className="rounded-md border border-dashed border-line bg-paper p-4 text-sm text-slate-600">
+              No important updates yet. Add sources, finish onboarding, and run your radar manually.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {topSignals.map((signal) => (
+                <div key={signal.id} className="rounded-md border border-line p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-medium text-ink">{signal.title}</h3>
+                    <ScorePill value={signal.signalScore} label="Score" />
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{signal.summary}</p>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{signal.summary}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <div className="space-y-4">
-          <Actions />
+          <Actions actions={actions} />
           <Card>
             <div className="flex items-center gap-2">
               <ShieldAlert size={18} className="text-ember" />
               <h2 className="text-base font-semibold text-ink">Risk or breaking change</h2>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-700">{risk?.whyItMatters}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              {risk?.whyItMatters ?? "No risk signal detected in the latest brief."}
+            </p>
           </Card>
         </div>
       </div>
@@ -73,8 +94,10 @@ export function DailyBrief({ radar, signals }: { radar: Radar; signals: Signal[]
           </BriefSection>
         </Card>
         <Card>
-          <BriefSection title="Opportunity">
-            {opportunity?.recommendedAction ?? "Add sources or run the radar to detect opportunities."}
+          <BriefSection title="Source coverage">
+            {sources.filter((source) => source.status === "activa").length} active sources ·{" "}
+            {sources.filter((source) => source.lastError).length} sources with errors · {actions.length} saved
+            actions
           </BriefSection>
         </Card>
         <Card>
@@ -83,6 +106,9 @@ export function DailyBrief({ radar, signals }: { radar: Radar; signals: Signal[]
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">What can wait</p>
           </div>
           <ul className="mt-3 space-y-2 text-sm text-slate-700">
+            {waitSignals.length === 0 ? (
+              <li>No low-priority updates waiting.</li>
+            ) : null}
             {waitSignals.map((signal) => (
               <li key={signal.id} className="flex gap-2">
                 <ArrowRight className="mt-0.5 shrink-0 text-slate-400" size={15} />

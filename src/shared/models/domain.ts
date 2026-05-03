@@ -80,6 +80,7 @@ export type Radar = {
   interests: string[];
   avoidTopics: string[];
   outputTypes: OutputType[];
+  onboardingCompleted: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -94,6 +95,7 @@ export type Source = {
   suggestedFrequency: string;
   trustScore: number;
   lastCheckedAt: string | null;
+  lastError: string | null;
   status: SourceStatus;
 };
 
@@ -145,6 +147,21 @@ export type GeneratedAction = {
   title: string;
   body: string;
   createdAt: string;
+};
+
+export type RadarRunStatus = "queued" | "running" | "succeeded" | "failed";
+
+export type RadarRun = {
+  id: string;
+  userId: string;
+  radarId: string;
+  status: RadarRunStatus;
+  startedAt: string;
+  finishedAt: string | null;
+  sourcesChecked: number;
+  rawItemsFound: number;
+  signalsCreated: number;
+  error: string | null;
 };
 
 export type PipelineStepStatus = "complete" | "running" | "queued";

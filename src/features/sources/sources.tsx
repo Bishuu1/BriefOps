@@ -1,10 +1,10 @@
-import { DatabaseZap } from "lucide-react";
+import { DatabaseZap, Pause, Play, Trash2 } from "lucide-react";
 import type { Source } from "@shared/models/domain";
 import { Badge } from "@shared/components/badge";
 import { Button } from "@shared/components/button";
 import { Card } from "@shared/components/card";
 import { formatShortDate } from "@shared/utils/date";
-import { addSource } from "./services/source-actions";
+import { addSource, removeSource, saveSource, setSourceStatus } from "./services/source-actions";
 
 export function Sources({ sources }: { sources: Source[] }) {
   return (
@@ -61,22 +61,85 @@ export function Sources({ sources }: { sources: Source[] }) {
               <th className="px-3 py-3">Trust</th>
               <th className="px-3 py-3">Last review</th>
               <th className="px-3 py-3">Status</th>
+              <th className="px-3 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {sources.map((source) => (
               <tr key={source.id} className="border-t border-line">
                 <td className="px-3 py-3">
-                  <a href={source.url} className="font-medium text-ink hover:text-cobalt" target="_blank" rel="noreferrer">
-                    {source.name}
-                  </a>
+                  <form id={`source-${source.id}`} action={saveSource} className="grid gap-2">
+                    <input type="hidden" name="sourceId" value={source.id} />
+                    <input
+                      name="name"
+                      defaultValue={source.name}
+                      className="h-9 rounded-md border border-line bg-white px-2 text-sm font-medium text-ink outline-none focus:border-cobalt"
+                    />
+                    <input
+                      name="url"
+                      defaultValue={source.url}
+                      className="h-9 rounded-md border border-line bg-white px-2 text-xs text-slate-600 outline-none focus:border-cobalt"
+                    />
+                  </form>
                 </td>
-                <td className="px-3 py-3 text-slate-600">{source.type}</td>
+                <td className="px-3 py-3 text-slate-600">
+                  <select
+                    form={`source-${source.id}`}
+                    name="type"
+                    defaultValue={source.type}
+                    className="h-9 rounded-md border border-line bg-white px-2 text-sm outline-none focus:border-cobalt"
+                  >
+                    {[
+                      "RSS feed",
+                      "Blog",
+                      "Changelog",
+                      "GitHub repo releases",
+                      "Docs oficiales",
+                      "Paper / arXiv",
+                      "Newsletter",
+                      "Fuente manual"
+                    ].map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td className="px-3 py-3 text-slate-600">{source.suggestedFrequency}</td>
                 <td className="px-3 py-3 text-slate-600">{source.trustScore}/100</td>
                 <td className="px-3 py-3 text-slate-600">{formatShortDate(source.lastCheckedAt)}</td>
                 <td className="px-3 py-3">
-                  <Badge tone={source.status === "activa" ? "green" : "neutral"}>{source.status}</Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge tone={source.status === "activa" ? "green" : "neutral"}>{source.status}</Badge>
+                    {source.lastError ? (
+                      <span className="max-w-[260px] text-xs text-red-600">{source.lastError}</span>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="px-3 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" form={`source-${source.id}`} variant="secondary">
+                      Save
+                    </Button>
+                    <form action={setSourceStatus}>
+                      <input type="hidden" name="sourceId" value={source.id} />
+                      <input
+                        type="hidden"
+                        name="status"
+                        value={source.status === "activa" ? "pausada" : "activa"}
+                      />
+                      <Button type="submit" variant="ghost">
+                        {source.status === "activa" ? <Pause size={14} /> : <Play size={14} />}
+                        {source.status === "activa" ? "Pause" : "Resume"}
+                      </Button>
+                    </form>
+                    <form action={removeSource}>
+                      <input type="hidden" name="sourceId" value={source.id} />
+                      <Button type="submit" variant="danger">
+                        <Trash2 size={14} /> Delete
+                      </Button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             ))}

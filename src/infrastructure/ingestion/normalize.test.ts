@@ -12,6 +12,7 @@ const source: Source = {
   suggestedFrequency: "Manual",
   trustScore: 70,
   lastCheckedAt: null,
+  lastError: null,
   status: "activa"
 };
 

@@ -28,6 +28,7 @@ export function createSeedRadar(userId: string): Radar {
     ],
     avoidTopics: ["crypto hype", "duplicate launch posts", "beginner-only tutorials"],
     outputTypes: ["Resumen tecnico", "Plan de accion", "Checklist de prueba"],
+    onboardingCompleted: false,
     createdAt: now,
     updatedAt: now
   };
@@ -45,6 +46,7 @@ export function createSeedSources(userId: string, radarId: string): Source[] {
       suggestedFrequency: "Daily",
       trustScore: 94,
       lastCheckedAt: daysAgo(1),
+      lastError: null,
       status: "activa"
     },
     {
@@ -57,6 +59,7 @@ export function createSeedSources(userId: string, radarId: string): Source[] {
       suggestedFrequency: "Twice weekly",
       trustScore: 96,
       lastCheckedAt: daysAgo(2),
+      lastError: null,
       status: "activa"
     },
     {
@@ -69,6 +72,7 @@ export function createSeedSources(userId: string, radarId: string): Source[] {
       suggestedFrequency: "Daily",
       trustScore: 93,
       lastCheckedAt: daysAgo(1),
+      lastError: null,
       status: "activa"
     },
     {
@@ -81,6 +85,7 @@ export function createSeedSources(userId: string, radarId: string): Source[] {
       suggestedFrequency: "Daily",
       trustScore: 92,
       lastCheckedAt: daysAgo(3),
+      lastError: null,
       status: "activa"
     },
     {
@@ -93,6 +98,7 @@ export function createSeedSources(userId: string, radarId: string): Source[] {
       suggestedFrequency: "Daily",
       trustScore: 88,
       lastCheckedAt: daysAgo(1),
+      lastError: null,
       status: "activa"
     },
     {
@@ -105,6 +111,7 @@ export function createSeedSources(userId: string, radarId: string): Source[] {
       suggestedFrequency: "Weekly",
       trustScore: 82,
       lastCheckedAt: daysAgo(4),
+      lastError: "Paused for beta: arXiv ingestion will be connected after source quality checks.",
       status: "pausada"
     }
   ];
