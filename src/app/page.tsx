@@ -2,8 +2,14 @@ import { ArrowRight, Github, Radar, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Button } from "@shared/components/button";
 import { Card } from "@shared/components/card";
-import { auth, isAuthConfigured } from "@infrastructure/auth/auth";
-import { signInWithGitHub } from "@infrastructure/auth/actions";
+import {
+  auth,
+  isAuthConfigured,
+  isDemoModeEnabled,
+  isGitHubAuthConfigured,
+  isGoogleAuthConfigured
+} from "@infrastructure/auth/auth";
+import { signInWithGitHub, signInWithGoogle } from "@infrastructure/auth/actions";
 
 export default async function HomePage() {
   const session = isAuthConfigured() ? await auth() : null;
@@ -27,17 +33,32 @@ export default async function HomePage() {
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               {isAuthConfigured() ? (
-                <form action={signInWithGitHub}>
-                  <Button type="submit" variant="primary" className="h-11 px-4">
-                    <Github size={17} /> Sign in with GitHub
-                  </Button>
-                </form>
-              ) : (
+                <>
+                  {isGitHubAuthConfigured() ? (
+                    <form action={signInWithGitHub}>
+                      <Button type="submit" variant="primary" className="h-11 px-4">
+                        <Github size={17} /> Sign in with GitHub
+                      </Button>
+                    </form>
+                  ) : null}
+                  {isGoogleAuthConfigured() ? (
+                    <form action={signInWithGoogle}>
+                      <Button type="submit" variant="secondary" className="h-11 px-4">
+                        Sign in with Google
+                      </Button>
+                    </form>
+                  ) : null}
+                </>
+              ) : isDemoModeEnabled() ? (
                 <a href="/dashboard">
                   <Button type="button" variant="primary" className="h-11 px-4">
                     Open demo mode <ArrowRight size={17} />
                   </Button>
                 </a>
+              ) : (
+                <Button type="button" variant="secondary" className="h-11 px-4" disabled>
+                  Configure OAuth to continue
+                </Button>
               )}
             </div>
           </section>
