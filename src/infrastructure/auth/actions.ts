@@ -17,10 +17,12 @@ export async function signInWithCredentials(formData: FormData) {
   const password = String(formData.get("password") ?? "");
 
   try {
+    // redirect:false → signIn sets the session cookie via next/headers cookies()
+    // but does NOT throw a redirect, so the Set-Cookie is preserved in the action response.
     await signIn("credentials", {
       email,
       password,
-      redirectTo: "/dashboard"
+      redirect: false
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -28,6 +30,8 @@ export async function signInWithCredentials(formData: FormData) {
     }
     throw error;
   }
+  // Now that the cookie is committed, navigate.
+  redirect("/dashboard");
 }
 
 export async function signOutUser() {
