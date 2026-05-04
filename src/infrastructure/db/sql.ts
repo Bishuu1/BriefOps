@@ -1,4 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
+import { parse as parseConnectionString } from "pg-connection-string";
 
 // Drop-in replacement for `@vercel/postgres`'s `sql` tagged template.
 //
@@ -31,10 +32,19 @@ function getPool(): Pool {
     );
   }
 
+  // We parse the URL ourselves instead of letting pg do it. Why:
+  // pg-connection-string >=2.7 treats `sslmode=require` (Supabase's default) as
+  // `verify-full`, which forces `rejectUnauthorized: true` and rejects Supabase's
+  // chain with `SELF_SIGNED_CERT_IN_CHAIN`. By splitting host/user/password
+  // ourselves we keep full control over the `ssl` option.
+  const parsed = parseConnectionString(connectionString);
   const pool = new Pool({
-    connectionString,
+    host: parsed.host ?? undefined,
+    port: parsed.port ? Number(parsed.port) : undefined,
+    database: parsed.database ?? undefined,
+    user: parsed.user ?? undefined,
+    password: typeof parsed.password === "string" ? parsed.password : undefined,
     max: 5,
-    // Supabase certs are valid; sslmode=require is honored from the connection string.
     ssl: { rejectUnauthorized: false }
   });
 
