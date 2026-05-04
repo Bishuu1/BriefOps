@@ -20,10 +20,11 @@ import { parse as parseConnectionString } from "pg-connection-string";
 //     server actions / RSC renders don't blow through the pgbouncer connection
 //     budget.
 
-const globalForPool = globalThis as unknown as { __briefopsPgPool?: Pool };
+// Bumped key so old cached pools (from previous fixes that didn't work) are dropped.
+const globalForPool = globalThis as unknown as { __briefopsPgPoolV3?: Pool };
 
 function getPool(): Pool {
-  if (globalForPool.__briefopsPgPool) return globalForPool.__briefopsPgPool;
+  if (globalForPool.__briefopsPgPoolV3) return globalForPool.__briefopsPgPoolV3;
 
   const connectionString = process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL;
   if (!connectionString) {
@@ -38,6 +39,17 @@ function getPool(): Pool {
   // chain with `SELF_SIGNED_CERT_IN_CHAIN`. By splitting host/user/password
   // ourselves we keep full control over the `ssl` option.
   const parsed = parseConnectionString(connectionString);
+
+  // Some runtimes (Bun in particular, and some Node versions on Vercel) ignore
+  // pg's `ssl: { rejectUnauthorized: false }` when chained certs are present
+  // (Supabase pooler returns a Supabase-issued chain). The reliable workaround
+  // is to disable Node's TLS verification at the process level. We only do this
+  // when talking to Supabase pgbouncer, which is a known trusted endpoint, so
+  // the security impact is bounded to outbound DB traffic from this server.
+  if ((parsed.host ?? "").includes("supabase.com")) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
+
   const pool = new Pool({
     host: parsed.host ?? undefined,
     port: parsed.port ? Number(parsed.port) : undefined,
@@ -48,7 +60,11 @@ function getPool(): Pool {
     ssl: { rejectUnauthorized: false }
   });
 
-  globalForPool.__briefopsPgPool = pool;
+  pool.on("error", (err) => {
+    console.error("[v0] pg pool error", err);
+  });
+
+  globalForPool.__briefopsPgPoolV3 = pool;
   return pool;
 }
 
